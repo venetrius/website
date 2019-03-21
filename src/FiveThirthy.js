@@ -2,6 +2,9 @@ import React, { Component } from 'react';
 import logo from './logo.png';
 import './FiveThirthy.css'
 
+const aiStrategies = Object.freeze({"RANDOM":"random", "SIXES":"sixes", "SEVENS":"sevens", "ONEOFMANY":"oneofmany"})
+
+
 function Square (props) {
     if(props.max < props.value){
         return (
@@ -21,6 +24,64 @@ function Square (props) {
       </button>
     );
   }
+
+class GameLogic {
+  constructor(props){
+      this.state = {
+        aiStrategy: this.getStrategy(),
+        sum:0,
+        turn:0
+    }
+  }
+
+  getStrategy(){
+    var i = Math.floor(Math.random()*4);
+    console.log("i " +i);
+    var strategy = null;
+    if(i === 0){
+      strategy = aiStrategies.RANDOM;
+    }else if(i ===1){
+      strategy = aiStrategies.SIXES;
+    }else if(i ===2){
+      strategy = aiStrategies.SEVENS;
+    }else if(i ===3){
+      strategy = aiStrategies.ONEOFMANY;
+    }
+    return strategy;
+  }
+
+  getAibet(){
+    var bet = 0;
+    const turn = this.state.turn;
+    console.log("used strategy: " + this.aiStrategy);
+    switch(this.state.aiStrategy){
+      case aiStrategies.SIXES: 
+        bet = 6;
+        break;
+      case aiStrategies.SEVENS:
+        if((turn > 0 && this.state.sum / turn !== 7) || (turn < 5 && Math.random() > 0.33)){
+          bet = 7;
+        }else{
+          bet=2;          
+        }
+        break;
+      case aiStrategies.RANDOM:
+        bet=3;
+        break;
+      case aiStrategies.ONEOFMANY:
+        bet=8;
+        break;   
+    }
+    this.setstate = {
+      aiStrategy: this.state.aiStrategy,
+      sum: this.state.sum + bet,
+      turn: turn +1
+    }
+    return bet;
+  }
+
+
+}
 
 class Board extends React.Component {
 
@@ -87,15 +148,22 @@ class Board extends React.Component {
   class Game extends React.Component {
     constructor(props) {
       super (props);
+      
       this.state = {
         stepNumber: 1,
-        sum: 0,
+        pSum: 0,
+        aiSum:0,
         pointAI: 0,
         pointP: 0,
-        isEnd: false
+        isEnd: false,
+        logic: new GameLogic()
       };
     }
   
+    getAibet(){
+      
+    }
+
     evaluateBets(a, b){
         if(a > b){
             return 1; 
@@ -109,27 +177,33 @@ class Board extends React.Component {
       if(this.state.stepNumber > 5){
           return;
       }
-      const aIbet = 6;
+      const aIbet = this.state.logic.getAibet();
       const pGain = this.evaluateBets(i, aIbet);
       this.setState({
         stepNumber: this.state.stepNumber + 1,
-        sum: this.state.sum + i,
+        pSum: this.state.pSum + i,
+        aiSum: this.state.aiSum + aIbet,
         pointAI: this.state.pointAI + 1 - pGain,
         pointP: this.state.pointP + pGain
       });
     }
 
     getMax(){
-        return 30 - this.state.sum - 5 + this.state.stepNumber;
+        if(this.state.stepNumber === 6){
+          return 0;
+        }
+        return 30 - this.state.pSum - 5 + this.state.stepNumber;
     }
 
     restartGame(){
       this.setState({
         stepNumber: 1,
-        sum: 0,
+        pSum: 0,
+        aiSum:0,
         pointAI: 0,
         pointP: 0,
-        isEnd: false  
+        isEnd: false,
+        logic: new GameLogic()  
       });
     }
 
